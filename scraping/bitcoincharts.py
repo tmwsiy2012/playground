@@ -4,6 +4,7 @@ import urllib2
 from urllib2 import urlopen
 import re
 import cookielib
+import json
 from cookielib import CookieJar
 import time
 
@@ -25,15 +26,27 @@ def get_bitcoincharts_historical_data(exchange, fiat, days, sampling_frequency):
     """
     try:
         page = 'http://bitcoincharts.com/charts/chart.json?m=' + exchange + fiat + '&SubmitButton=Draw&r=' + days + '&i=' + sampling_frequency + '&c=0&s=&e=&Prev=&Next=&t=S&b=&a1=&m1=10&a2=&m2=25&x=0&i1=&i2=&i3=&i4=&v=1&cv=0&ps=0&l=0&p=0&'
-        page_source = opener.open(page).read()
-        print page_source
-        options = re.findall(r'<option.*?>(.*?)</option>',page_source)
-        #for option in options:
-        #    p = re.compile('.*?[A-Z][A-Z][A-Z]$')
-        #    m = p.match(option)
-        #    if m:
-        #        print option
+        return json.loads(opener.open(page).read())
     except Exception, e:
-        print(str(e))
+        print str(e)
 
-get_bitcoincharts_historical_data('mtgox','USD','2280','6-hour')
+def main():
+    try:
+        entries = get_bitcoincharts_historical_data('mtgox','USD','2280','6-hour')
+        for entry in entries:
+            try:
+                print entry
+                timestamp = int(entry[0])
+                open_price = float(entry[1])
+                high_price = float(entry[2])
+                low_price = float(entry[3])
+                close_price = float(entry[4])
+                volume_btc = float(entry[5])
+                volume_fiat = float(entry[6])
+                weighted_average = float(entry[7])
+            except Exception,e:
+                print str(e)
+    except Exception, e:
+        print str(e)
+
+main()
