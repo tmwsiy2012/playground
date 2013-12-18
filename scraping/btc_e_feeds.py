@@ -18,5 +18,7 @@ opener.addheaders = headers
 try:
     page = 'https://btc-e.com/api/2/btc_usd/trades'
     trades = json.loads(opener.open(page).read())
+    for trade in trades:
+        print trade
 except Exception, e:
     print str(e)
