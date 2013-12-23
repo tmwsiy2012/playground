@@ -1,5 +1,3 @@
-
-
 __author__ = 'tmwsiy'
 
 
@@ -44,11 +42,11 @@ class MySQLCursorDict(mysql.connector.cursor.MySQLCursorBuffered):
         return None
 
 class BTCETradeUpdater(threading.Thread):
-    def __init__(self,priority,id, pair, datavendorid, symbolid, lock):
+    def __init__(self,priority,id, pair, datavendorid, symbolid):
         super(BTCETradeUpdater, self).__init__()
         self.id = id
         global pairs
-        self.lock = lock
+        global lock
         self.pair = pair
         self.page = 'https://btc-e.com/api/2/' + self.pair + '/trades'
         self.priority=priority
@@ -64,7 +62,9 @@ class BTCETradeUpdater(threading.Thread):
 
     def run(self):
         try:
+            #print str(self.id), 'start request:',self.pair
             trade_list = json.loads(self.opener.open(self.page).read())
+            #print str(self.id),'got response:',self.pair
             last_tid = self.get_last_trans_id()
 
             trades_to_insert = []
@@ -90,14 +90,14 @@ class BTCETradeUpdater(threading.Thread):
 
             now = datetime.datetime.fromtimestamp(current_second_time())
             nxtd = datetime.datetime.fromtimestamp(self.next_update)
-            print str(self.id) + "--" + str(now.minute) + ":" + str(now.second) + " " + pair + ": added " + str(len(trades_to_insert)) + " new trades: Next run time in:  " + str(td) + " seconds " + str(nxtd.minute) + ":" + str(nxtd.second)
+            print str(self.id) + "--" + str(now.minute) + ":" + str(now.second) + " " + self.pair + ": added " + str(len(trades_to_insert)) + " new trades: Next run time in:  " + str(td) + " seconds " + str(nxtd.minute) + ":" + str(nxtd.second)
         except Exception,e:
             print e
         finally:
-            self.lock.acquire()
+            lock.acquire()
             pairs[pair][0] = self.next_update
             pairs[pair][3] = 'stopped'
-            self.lock.release()
+            lock.release()
 
 
     def insert_trades(self,trades_to_insert_struct):
@@ -118,7 +118,7 @@ class BTCETradeUpdater(threading.Thread):
                 #data_to_insert.append((td[1], td[2], td[0]['date'], td[0]['price'], td[0]['amount'], td[0]['tid'],
                 #                  td[0]['price_currency'], td[0]['item'], td[0]['trade_type']))
                 cursor.execute(sql_to_insert, data_to_insert)
-                db_conn.commit()
+            db_conn.commit()
                 #id = cursor.lastrowid
             #cursor.executemany(sql_to_insert, data_to_insert)
             #db_conn.commit()
@@ -148,6 +148,7 @@ thread_list = {}
 thr_id =0
 lock = threading.Lock()
 count = 0
+pp = pprint.PrettyPrinter(indent=3)
 while 1:
     for pair in pairs:
         next_update_time = pairs[pair][0]
@@ -159,11 +160,11 @@ while 1:
             if current_second_time() > next_update_time:
                 thr_id += 1
                 pairs[pair][3] = 'running:'+str(thr_id)
-                t = BTCETradeUpdater(priority,thr_id,pair, datavendorid, symbolid, lock)
+                t = BTCETradeUpdater(priority,thr_id,pair, datavendorid, symbolid)
                 t.start()
                 #print 'launched:',thr_id,'pair:',pair
         lock.release()
         time.sleep(0.1)
         count += 1
-    if count % 100 == 0:
-        print current_second_time(), pairs
+    if count % 10 == 0:
+        pp.pprint([current_second_time(), pairs])
