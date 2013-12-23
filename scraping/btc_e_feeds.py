@@ -12,25 +12,28 @@ import mysql.connector
 from urllib2 import urlopen
 import re
 import cookielib
-import json
+#import json
+import simplejson as json
 from cookielib import CookieJar
 import time
+import random
 import pprint
 from conf.config import db_config
 from data.antipool import ConnectionPool
 
 
 current_second_time = lambda:  int(round(time.time()))
-current_seconds = current_second_time()
+current_seconds = current_second_time() - 1
 # Pre-loading data structure with current time for all pairs and the symbolid in the database
 #pairs = {'btc_usd':[current_seconds,1,1]}
 
-pairs = {'btc_usd':[current_seconds,1,1,0],'btc_rur':[current_seconds,2,1,0],'btc_eur':[current_seconds,3,1,0],'ltc_btc':[current_seconds,4,1,0]
-    ,'ltc_usd':[current_seconds,5,1,0],'ltc_rur':[current_seconds,6,1,0],'ltc_eur':[current_seconds,7,1,0],'nmc_btc':[current_seconds,8,1,0],
-         'nmc_usd':[current_seconds,9,1,0],'nvc_btc':[current_seconds,10,1,0],'nvc_usd':[current_seconds,11,1,0],'usd_rur':[current_seconds,12,1,0]
-    ,'eur_usd':[current_seconds,13,1,0],'trc_btc':[current_seconds,14,1,0],'ppc_btc':[current_seconds,15,1,0],'ftc_btc':[current_seconds,16,1,0],'xpm_btc':[current_seconds,17,1,0]}
+pairs = {'btc_usd':[current_seconds,1,1,'stopped','high'],'btc_rur':[current_seconds,2,1,'stopped','high'],'btc_eur':[current_seconds,3,1,'stopped','high'],'ltc_btc':[current_seconds,4,1,'stopped','high']
+    ,'ltc_usd':[current_seconds,5,1,'stopped','high'],'ltc_rur':[current_seconds,6,1,'stopped','low'],'ltc_eur':[current_seconds,7,1,'stopped','low'],'nmc_btc':[current_seconds,8,1,'stopped','low'],
+         'nmc_usd':[current_seconds,9,1,'stopped','low'],'nvc_btc':[current_seconds,10,1,'stopped','low'],'nvc_usd':[current_seconds,11,1,'stopped','low'],'usd_rur':[current_seconds,12,1,'stopped','low']
+    ,'eur_usd':[current_seconds,13,1,'stopped','low'],'trc_btc':[current_seconds,14,1,'stopped','low'],'ppc_btc':[current_seconds,15,1,'stopped','low'],'ftc_btc':[current_seconds,16,1,'stopped','low'],'xpm_btc':[current_seconds,17,1,'stopped','high']}
 
-
+for pair in pairs:
+    pairs[pair][0] += random.randint(3, 11)
 
 
 class MySQLCursorDict(mysql.connector.cursor.MySQLCursorBuffered):
@@ -41,46 +44,61 @@ class MySQLCursorDict(mysql.connector.cursor.MySQLCursorBuffered):
         return None
 
 class BTCETradeUpdater(threading.Thread):
-    def __init__(self,id, pair, datavendorid, symbolid):
+    def __init__(self,priority,id, pair, datavendorid, symbolid, lock):
         super(BTCETradeUpdater, self).__init__()
         self.id = id
+        global pairs
+        self.lock = lock
         self.pair = pair
+        self.page = 'https://btc-e.com/api/2/' + self.pair + '/trades'
+        self.priority=priority
+        self.next_update = current_second_time() + 3
         self.datavendorid  =datavendorid
         self.symbolid = symbolid
-        self.MAX_WAIT=25
+        self.MAX_WAIT_HIGH=5
+        self.MAX_WAIT_LOW=45
         self.headers = [('User-Agent','Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36')]
         self.cj = CookieJar()
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cj))
         self.opener.addheaders = self.headers
 
     def run(self):
-        page = 'https://btc-e.com/api/2/' + self.pair + '/trades'
         try:
-            trade_list = json.loads(self.opener.open(page).read())
+            trade_list = json.loads(self.opener.open(self.page).read())
             last_tid = self.get_last_trans_id()
 
+            trades_to_insert = []
+            for trade in trade_list:
+                if trade['tid'] > last_tid:
+                    trades_to_insert.append([trade, self.datavendorid, self.symbolid])
+            self.insert_trades( trades_to_insert)
+            #first_trade_time = trade_list[len(trade_list) - 1]['date']
+            first_trade_time = trade_list[49]['date']
+            last_trade_time = trade_list[0]['date']
+            avg_last_fifty = float((last_trade_time - first_trade_time))/50
+            td = int( avg_last_fifty * 10)
+            max_wait = 0
+            #print str(self.id), self.pair, self.priority
+            if self.priority == 'high':
+                self.max_wait = self.MAX_WAIT_HIGH
+            else:
+                self.max_wait = self.MAX_WAIT_LOW
+            if td > self.max_wait:
+                td = self.max_wait
+            #print str(td)
+            self.next_update = current_second_time() + td
+
+            now = datetime.datetime.fromtimestamp(current_second_time())
+            nxtd = datetime.datetime.fromtimestamp(self.next_update)
+            print str(self.id) + "--" + str(now.minute) + ":" + str(now.second) + " " + pair + ": added " + str(len(trades_to_insert)) + " new trades: Next run time in:  " + str(td) + " seconds " + str(nxtd.minute) + ":" + str(nxtd.second)
         except Exception,e:
             print e
-            return
-        trades_to_insert = []
-        for trade in trade_list:
-            if trade['tid'] > last_tid:
-                trades_to_insert.append([trade, self.datavendorid, self.symbolid])
-        self.insert_trades( trades_to_insert)
-        #first_trade_time = trade_list[len(trade_list) - 1]['date']
-        first_trade_time = trade_list[49]['date']
-        last_trade_time = trade_list[0]['date']
-        avg_last_fifty = float((last_trade_time - first_trade_time))/50
-        td = int( avg_last_fifty * 10)
-        if td > self.MAX_WAIT:
-            td = self.MAX_WAIT
-        next_update = current_second_time() + td
-        pairs[pair][0] = next_update
-        pairs[pair][3] = 0
-        now = datetime.datetime.fromtimestamp(current_second_time())
-        nxtd = datetime.datetime.fromtimestamp(next_update)
-        print str(self.id) + "--" + str(now.minute) + ":" + str(now.second) + " " + pair + ": added " + str(len(trades_to_insert)) + " new trades: Next run time in:  " + str(td) + " seconds " + str(nxtd.minute) + ":" + str(nxtd.second)
-        return
+        finally:
+            self.lock.acquire()
+            pairs[pair][0] = self.next_update
+            pairs[pair][3] = 'stopped'
+            self.lock.release()
+
 
     def insert_trades(self,trades_to_insert_struct):
         """
@@ -128,14 +146,24 @@ class BTCETradeUpdater(threading.Thread):
             connection.close()
 thread_list = {}
 thr_id =0
+lock = threading.Lock()
+count = 0
 while 1:
     for pair in pairs:
         next_update_time = pairs[pair][0]
         symbolid = pairs[pair][1]
         datavendorid = pairs[pair][2]
-        if current_second_time() > next_update_time:
-            if pairs[pair][3] == 0:
+        priority = pairs[pair][4]
+        lock.acquire()
+        if pairs[pair][3] == 'stopped':
+            if current_second_time() > next_update_time:
                 thr_id += 1
-                pairs[pair][3] = thr_id
-                t = BTCETradeUpdater(thr_id,pair, datavendorid, symbolid)
+                pairs[pair][3] = 'running:'+str(thr_id)
+                t = BTCETradeUpdater(priority,thr_id,pair, datavendorid, symbolid, lock)
                 t.start()
+                #print 'launched:',thr_id,'pair:',pair
+        lock.release()
+        time.sleep(0.1)
+        count += 1
+    if count % 100 == 0:
+        print current_second_time(), pairs
