@@ -1,6 +1,6 @@
 __author__ = 'tmwsiy'
 
-
+import traceback
 import sys
 import time
 import zmq
@@ -31,32 +31,56 @@ task_nbr=0
 while True:
 
     s = receiver.recv_string()
-    #sys.stdout.write(s)
-    data_to_insert = json.loads( s )
 
-    for trade in data_to_insert[1]:
-        sys.stdout.write(str(trade) + '\n')
-    sys.stdout.flush()
-'''
+    wire_data = json.loads( s )
+    job_params = []
+    trades_to_insert = []
+    datavendorid = 0
+    symbolid = 0
+    symbol = ''
+    for key in wire_data[0]:
+        vals = wire_data[0][key].split(',')
+        symbol = key
+        datavendorid = int(vals[1])
+        symbolidid = int(vals[0])
+
     last_trans_id=0
     try:
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor(cursor_class=MySQLCursorDict)
         connection.start_transaction()
 
-        cursor.execute("select max(tid) as last_tid from price_tradebook where datavendorid=%s AND symbolid=%s",[self.datavendorid,self.symbolid])
+        cursor.execute("select max(tid) as last_tid from price_tradebook where datavendorid=%s AND symbolid=%s",[datavendorid,symbolid])
         rows = cursor.fetchall()
         for row in rows:
             last_trans_id = row['last_tid']
 
 
+
+        for trade in wire_data[1]:
+            if int(trade['tid']) > last_trans_id:
+                trades_to_insert.append([trade, datavendorid, symbolid])
+
+        sql_to_insert = ("INSERT INTO price_tradebook (datavendorid,symbolid,price_date,price,amount,tid,price_currency,"
+                         "item,trade_type) VALUES (%s,%s,from_unixtime(%s),%s,%s,%s,%s,%s,%s)")
+        data_to_insert = ()
+
+        for td in trades_to_insert:
+            data_to_insert = ( datavendorid, symbolid, td[0]['date'], td[0]['price'], td[0]['amount'], td[0]['tid'],
+                              td[0]['price_currency'], td[0]['item'], td[0]['trade_type'])
+            cursor.execute(sql_to_insert, data_to_insert)
+
         connection.commit()
+
     except Exception, e:
         connection.rollback()
+        traceback.print_exc()
         print 'error getting last_trans_id:',  e
     finally:
         cursor.close()
         connection.close()
-'''
+
+    sys.stdout.write('finished: ' + key + ' updated: ' + str(len(data_to_insert)) + '\n')
+    sys.stdout.flush()
 
 

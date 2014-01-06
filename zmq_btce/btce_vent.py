@@ -62,8 +62,8 @@ pairs_ids = {'btc_usd':'1,1',
 
 
 # send out initial
-for pair in pairs:
-    sender.send(pair + "," + pairs_ids[pair] )
-
+while True:
+    for pair in pairs:
+        sender.send(pair + "," + pairs_ids[pair] )
+    time.sleep(60)
 # Give 0MQ time to deliver
-time.sleep(1)
