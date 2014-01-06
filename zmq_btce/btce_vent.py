@@ -14,9 +14,9 @@ sender.bind("tcp://*:5557")
 sink = context.socket(zmq.PUSH)
 sink.connect("tcp://localhost:5558")
 
-print "Press Enter when the workers are ready: "
-_ = raw_input()
-print "Sending tasks to workers..."
+#print "Press Enter when the workers are ready: "
+#_ = raw_input()
+#print "Sending tasks to workers..."
 
 # The first message is "0" and signals start of batch
 sink.send('0')
