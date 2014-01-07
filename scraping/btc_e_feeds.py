@@ -108,6 +108,7 @@ class BTCETradeUpdater(threading.Thread):
             for td in trades_to_insert_struct:
                 data_to_insert = (self.datavendorid, self.symbolid, td[0]['date'], td[0]['price'], td[0]['amount'], td[0]['tid'],
                                   td[0]['price_currency'], td[0]['item'], td[0]['trade_type'])
+                print( str(data_to_insert))
                 #data_to_insert.append((td[1], td[2], td[0]['date'], td[0]['price'], td[0]['amount'], td[0]['tid'],
                 #                  td[0]['price_currency'], td[0]['item'], td[0]['trade_type']))
                 cursor.execute(sql_to_insert, data_to_insert)
