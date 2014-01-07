@@ -71,7 +71,8 @@ while True:
             cursor.execute(sql_to_insert, data_to_insert)
 
         connection.commit()
-
+        sys.stdout.write('finished: ' + key + ' updated: ' + str(len(trades_to_insert)) + '\n')
+        sys.stdout.flush()
     except Exception, e:
         connection.rollback()
         traceback.print_exc()
@@ -80,7 +81,6 @@ while True:
         cursor.close()
         connection.close()
 
-    sys.stdout.write('finished: ' + key + ' updated: ' + str(len(data_to_insert)) + '\n')
-    sys.stdout.flush()
+
 
 

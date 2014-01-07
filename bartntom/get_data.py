@@ -224,7 +224,7 @@ def trim_skills_tmp(ids_to_delete):
 pp = pprint.PrettyPrinter(indent=3)
 buf_size = 500
 
-'''
+
 create_temp_tables()
 imp_vals = get_knowledge_importance_values()
 update_knowledge_tmp(imp_vals)
@@ -232,5 +232,5 @@ trim_knowledge_tmp(imp_vals)
 imp_vals = get_skills_importance_values()
 update_skills_tmp(imp_vals)
 trim_skills_tmp(imp_vals)
-'''
+
 write_xlsx_file('file.xlsx')
