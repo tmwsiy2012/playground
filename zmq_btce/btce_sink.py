@@ -42,7 +42,7 @@ while True:
         vals = wire_data[0][key].split(',')
         symbol = key
         datavendorid = int(vals[1])
-        symbolidid = int(vals[0])
+        symbolid = int(vals[0])
 
     last_trans_id=0
     try:
@@ -54,7 +54,6 @@ while True:
         rows = cursor.fetchall()
         for row in rows:
             last_trans_id = row['last_tid']
-
 
 
         for trade in wire_data[1]:
