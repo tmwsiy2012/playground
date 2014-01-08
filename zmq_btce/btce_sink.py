@@ -58,7 +58,7 @@ while True:
 
 
         for trade in wire_data[1]:
-            if int(trade['tid']) > last_trans_id:
+            if trade['tid'] > last_trans_id:
                 trades_to_insert.append([trade, datavendorid, symbolid])
 
         sql_to_insert = ("INSERT INTO price_tradebook (datavendorid,symbolid,price_date,price,amount,tid,price_currency,"
@@ -70,17 +70,17 @@ while True:
                               td[0]['price_currency'], td[0]['item'], td[0]['trade_type'])
             cursor.execute(sql_to_insert, data_to_insert)
 
-        connection.commit()
 
     except Exception, e:
         connection.rollback()
         traceback.print_exc()
         print 'error getting last_trans_id:',  e
     finally:
+        connection.commit()
         cursor.close()
         connection.close()
 
-    sys.stdout.write('finished: ' + key + ' updated: ' + str(len(data_to_insert)) + '\n')
+    sys.stdout.write('finished: ' + key + ' updated: ' + str(len(trades_to_insert)) + '\n')
     sys.stdout.flush()
 
 
