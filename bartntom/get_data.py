@@ -92,6 +92,32 @@ def get_knowledge_importance_values():
         return_value.append(row)
     return return_value
 
+def get_knowledge_values():
+    return_value=[]
+    connection = mysql.connector.connect(**db_config)
+    cursor = connection.cursor(cursor_class=MySQLCursorDict)
+    cursor.execute('''
+        SELECT knowltmpid,data_value
+        FROM knowledge_tmp
+    ''')
+    rows = cursor.fetchall()
+    for row in rows:
+        return_value.append(row)
+    return return_value
+
+def get_skill_values():
+    return_value=[]
+    connection = mysql.connector.connect(**db_config)
+    cursor = connection.cursor(cursor_class=MySQLCursorDict)
+    cursor.execute('''
+        SELECT skilltmpid,data_value
+        FROM skills_tmp
+    ''')
+    rows = cursor.fetchall()
+    for row in rows:
+        return_value.append(row)
+    return return_value
+
 def get_skills_importance_values():
     return_value=[]
     connection = mysql.connector.connect(**db_config)
@@ -157,11 +183,28 @@ def update_knowledge_tmp(importance_values):
     connection = mysql.connector.connect(**db_config)
     cursor = connection.cursor(cursor_class=MySQLCursorDict)
     data_to_insert = ()
-    update_sql = "UPDATE knowledge_tmp SET importance_value=%s WHERE knowltmpid=%s;"
+    update_sql = "UPDATE knowledge_tmp SET importance_value=%s,importance_value_std=%s WHERE knowltmpid=%s;"
     cnt = 0
     for imp_val in importance_values:
-        data_to_insert =(imp_val['data_value'],imp_val['knowltmpid']+1)
+        data_to_insert =(imp_val['data_value'],"{:.2f}".format((((float(imp_val['data_value'])-1.0)/4.0)*100)),imp_val['knowltmpid']+1)
 
+        cursor.execute(update_sql, data_to_insert)
+        cnt += 1
+        if cnt % buf_size == 0:
+            connection.commit()
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+def update_knowledge_level(level_values):
+    connection = mysql.connector.connect(**db_config)
+    cursor = connection.cursor(cursor_class=MySQLCursorDict)
+    data_to_insert = ()
+    update_sql = "UPDATE knowledge_tmp SET level_value_std=%s WHERE knowltmpid=%s;"
+    cnt = 0
+    for lvl_val in level_values:
+        data_to_insert =("{:.2f}".format((((float(lvl_val['data_value']))/7.0)*100)),lvl_val['knowltmpid'])
+        print data_to_insert
         cursor.execute(update_sql, data_to_insert)
         cnt += 1
         if cnt % buf_size == 0:
@@ -174,10 +217,27 @@ def update_skills_tmp(importance_values):
     connection = mysql.connector.connect(**db_config)
     cursor = connection.cursor(cursor_class=MySQLCursorDict)
     data_to_insert = ()
-    update_sql = "UPDATE skills_tmp SET importance_value=%s WHERE skilltmpid=%s;"
+    update_sql = "UPDATE skills_tmp SET importance_value=%s,importance_value_std=%s WHERE skilltmpid=%s;"
     cnt = 0
     for imp_val in importance_values:
-        data_to_insert =(imp_val['data_value'],imp_val['skilltmpid']+1)
+        data_to_insert =(imp_val['data_value'],"{:.2f}".format(((float(imp_val['data_value'])-1)/4)*100),imp_val['skilltmpid']+1)
+
+        cursor.execute(update_sql, data_to_insert)
+        cnt += 1
+        if cnt % buf_size == 0:
+            connection.commit()
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+def update_skills_level(level_values):
+    connection = mysql.connector.connect(**db_config)
+    cursor = connection.cursor(cursor_class=MySQLCursorDict)
+    data_to_insert = ()
+    update_sql = "UPDATE skills_tmp SET level_value_std=%s WHERE skilltmpid=%s;"
+    cnt = 0
+    for lvl_val in level_values:
+        data_to_insert =("{:.2f}".format(((float(lvl_val['data_value']))/7)*100),lvl_val['skilltmpid'])
 
         cursor.execute(update_sql, data_to_insert)
         cnt += 1
@@ -229,8 +289,11 @@ create_temp_tables()
 imp_vals = get_knowledge_importance_values()
 update_knowledge_tmp(imp_vals)
 trim_knowledge_tmp(imp_vals)
+kvals = get_knowledge_values()
+update_knowledge_level(kvals)
 imp_vals = get_skills_importance_values()
 update_skills_tmp(imp_vals)
 trim_skills_tmp(imp_vals)
-
-write_xlsx_file('file.xlsx')
+svals = get_skill_values()
+update_skills_level(svals)
+#write_xlsx_file('file.xlsx')
