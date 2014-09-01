@@ -84,9 +84,36 @@ def listify_apparatus_verse_document(raw_utf8):
 
 
 def process_listified_document(raw_list):
-    for i in range(1,len(raw_list)):
-        
-        print(raw_list[i])
+    '''for line in raw_list:
+        for c in line[0]:
+            print(c,ord(c))'''
+    current_bodmer = ''
+    for line in raw_list:
+        if len(line[0]) > 0:
+            if line[0] == 'B' :
+                current_bodmer=line[1]
+                print('BL ' + line[1])
+            elif line[0] == 'BML' :
+                pass
+            elif line[0] == '[]' :
+                pass
+            elif line[0] == '-' :
+                pass
+                #print('bodmer manuscript line ' )
+            elif line[0].startswith('+'):
+                print('add ' + current_bodmer + ' ' + line[0][2:])
+            else:
+                gc = False
+                for c in line[0][:5]:
+                    if (ord(c) < 970 and ord(c) > 944):
+                        gc = True
+
+                if gc:
+                    print(line[0])
+                else:
+                    print('NOT CAUGHT *' + line[0] + '*')
+                    for c in line[0]:
+                        print(c,ord(c))
 
 #print_chap_verse(1,1)
 for i in range(1,14):
