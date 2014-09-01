@@ -81,17 +81,16 @@ def listify_apparatus_verse_document(raw_utf8):
                 listified_document.append(listify_manuscript_list(split_line))
         previous_line = line
     return listified_document
-def post_process_listified_document(raw_list):
-    # make a copy to manipulate
-    temp_list = copy.deepcopy(raw_list)
-    # must reset everytime we make a change
-    # while not finished:
-    for i in range(1,len(temp_list)):
-        print(temp_list[i])
+
+
+def process_listified_document(raw_list):
+    for i in range(1,len(raw_list)):
+        
+        print(raw_list[i])
 
 #print_chap_verse(1,1)
 for i in range(1,14):
-    post_process_listified_document(listify_apparatus_verse_document(get_chap_verse(1,i)))
+    process_listified_document(listify_apparatus_verse_document(get_chap_verse(1,i)))
 
 
 '''
