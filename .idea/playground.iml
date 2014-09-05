@@ -7,13 +7,14 @@
       <sourceFolder url="file://$MODULE_DIR$/scraping" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/util" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.4.0 (/usr/bin/python3.4)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.4.1 (C:/Python34/python.exe)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="myDocStringFormat" value="Plain" />
   </component>
   <component name="TestRunnerService">
+    <option name="projectConfiguration" value="Unittests" />
     <option name="PROJECT_TEST_RUNNER" value="Unittests" />
   </component>
 </module>
