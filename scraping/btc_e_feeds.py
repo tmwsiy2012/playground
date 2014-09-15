@@ -1,23 +1,20 @@
 __author__ = 'tmwsiy'
 
-
-import urllib2
 import datetime
 import Queue
 import threading
 from datetime import timedelta
 import mysql.connector
-from urllib2 import urlopen
-import re
-import cookielib
 #import json
 import simplejson as json
-from cookielib import CookieJar
 import time
 import random
 import pprint
+import requests
+import gevent
+from gevent import Greenlet
 from conf.config import db_config
-from data.antipool import ConnectionPool
+
 
 
 current_second_time = lambda:  int(round(time.time()))
@@ -30,8 +27,6 @@ pairs = {'btc_usd':[current_seconds,1,1,'stopped','high'],'btc_rur':[current_sec
          'nmc_usd':[current_seconds,9,1,'stopped','low'],'nvc_btc':[current_seconds,10,1,'stopped','low'],'nvc_usd':[current_seconds,11,1,'stopped','low'],'usd_rur':[current_seconds,12,1,'stopped','low']
     ,'eur_usd':[current_seconds,13,1,'stopped','low'],'trc_btc':[current_seconds,14,1,'stopped','low'],'ppc_btc':[current_seconds,15,1,'stopped','low'],'ftc_btc':[current_seconds,16,1,'stopped','low'],'xpm_btc':[current_seconds,17,1,'stopped','high']}
 
-for pair in pairs:
-    pairs[pair][0] += random.randint(3, 11)
 
 
 class MySQLCursorDict(mysql.connector.cursor.MySQLCursorBuffered):
@@ -47,6 +42,7 @@ class BTCETradeUpdater(threading.Thread):
         self.id = id
         global pairs
         global lock
+        global http
         self.pair = pair
         self.page = 'https://btc-e.com/api/2/' + self.pair + '/trades'
         self.priority=priority
@@ -55,15 +51,12 @@ class BTCETradeUpdater(threading.Thread):
         self.symbolid = symbolid
         self.MAX_WAIT_HIGH=5
         self.MAX_WAIT_LOW=45
-        self.headers = [('User-Agent','Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36')]
-        self.cj = CookieJar()
-        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cj))
-        self.opener.addheaders = self.headers
 
     def run(self):
         try:
             #print str(self.id), 'start request:',self.pair
-            trade_list = json.loads(self.opener.open(self.page).read())
+            trade_list = requests.get(self.page).json()
+            #trade_list = json.loads(self.opener.open(self.page).read())
             #print str(self.id),'got response:',self.pair
             last_tid = self.get_last_trans_id()
 
@@ -149,14 +142,18 @@ thread_list = {}
 thr_id =0
 lock = threading.Lock()
 count = 0
-pp = pprint.PrettyPrinter(indent=3)
+pp = pprint.PrettyPrinter(indent=4)
+#r = requests.get('https://btc-e.com')
+#requests.Request('')
 while 1:
     for pair in pairs:
         next_update_time = pairs[pair][0]
         symbolid = pairs[pair][1]
         datavendorid = pairs[pair][2]
         priority = pairs[pair][4]
-        lock.acquire()
+        t = BTCETradeUpdater(priority,thr_id,pair, datavendorid, symbolid)
+        t.start()
+        '''
         if pairs[pair][3] == 'stopped':
             if current_second_time() > next_update_time:
                 thr_id += 1
@@ -164,8 +161,8 @@ while 1:
                 t = BTCETradeUpdater(priority,thr_id,pair, datavendorid, symbolid)
                 t.start()
                 #print 'launched:',thr_id,'pair:',pair
-        lock.release()
-        time.sleep(0.1)
+        '''
+        time.sleep(.75)
         count += 1
     if count % 10 == 0:
         pp.pprint([current_second_time(), pairs])
