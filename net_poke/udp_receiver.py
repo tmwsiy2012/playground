@@ -1,7 +1,7 @@
 import socket
 import urllib
 import zipfile
-import sys, struct, socket
+import sys, struct, socket, tempfile, os
 from subprocess import call
 
 
@@ -13,6 +13,7 @@ listen_port=4239
 base_dir = '/home/tmwsiy/'
 data_dir = base_dir+'mac_lists/'
 broadcast = {'BR':['152.20.223.255'], 'CI':['152.20.234.255']}
+machines_to_wake = {}
 wol_port = 9
 
 def wakeup_room(mac_list, building_code):
@@ -46,14 +47,26 @@ def wakeup_machine(ethernet_address, building_code):
             soc.sendto(msg,(i,wol_port))
         soc.close()
     except Exception, err:
-         print 'problem sending magic packet', Exception, err
+         print 'Problem sending magic packet...', Exception, err
 
 
 def importMacs( room_number):
     return [line.strip() for line in open(data_dir + room_number +".txt")]
 
 def update_data():
-    pass
+    global machines_to_wake
+    machines_to_wake = {}
+    tmp_zip = tempfile.mkdtemp()
+    name, hdrs = urllib.urlretrieve(data_url, tmp_zip + '\mac_lists.zip')
+    zip = zipfile.ZipFile(name)
+    zip.extractall(path=tmp_zip)
+    for f in os.listdir(os.path.join(tmp_zip,'mac_lists')):
+        print 'new file', f
+        csv_file = open(os.path.join(tmp_zip,'mac_lists',f), "r")
+        for line in csv_file.readlines():
+            split_line = line.split(',')
+            if len(split_line) > 6 and not "Workstation" in split_line[0]:
+                print split_line[0], split_line[7]
 
 
 sock = socket.socket(socket.AF_INET, # Internet
@@ -69,11 +82,9 @@ while True:
         if addr[0] in allowed_ips:
             command = str(data)
             if command.startswith("WAKEUP"):
-                print "accepted command:", command, "from", addr
+                print "Accepted Command:", command, "from", addr
                 room_number = command.split(":")[1][2:]
                 building_code = command.split(":")[1][:2]
-                print 'building code', building_code
-                print 'room_number', room_number
                 num_attempted = wakeup_room( importMacs( room_number ), building_code)
                 print "Attempted:", str(num_attempted), "Room:", room_number
             elif command.startswith("UPDATE"):

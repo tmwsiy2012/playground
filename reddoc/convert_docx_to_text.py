@@ -53,6 +53,9 @@ def listify_manuscript_list(input_list):
         # need to fix 2 digit manuscripts to add leading zero
         if len(manuscript_list[manuscript]) == 2:
             manuscript_list[manuscript] = '0'+ manuscript_list[manuscript]
+        # need to fix 2 digit corrected (ie ends with 'c')
+        if len(manuscript_list[manuscript]) == 3 and manuscript_list[manuscript][2] == 'c':
+            manuscript_list[manuscript] = '0'+ manuscript_list[manuscript]
     return [ text_reading, manuscript_list]
 
 def listify_apparatus_verse_document(raw_utf8):
@@ -71,14 +74,16 @@ def listify_apparatus_verse_document(raw_utf8):
             if len(split_line) > 0 and len(split_line[0]) == 0 and ffb==True:
                 # bodmer manuscript list
                 split_line[0] = 'BML'
+                # add bodmer number
+                split_line[1] = '031 ' + split_line[1]
                 listified_document.append(listify_manuscript_list(split_line))
             elif len(split_line) == 0:
                 pass
             else:
                 # "normal" split line
-                # check for mising BML if bodmer was only reading and insert blank one
+                # check for mising BML if bodmer was only reading and insert bodmer number
                 if previous_line.startswith('Bodmer:'):
-                   listified_document.append(['BML',[]])
+                   listified_document.append(['BML',['031']])
                 listified_document.append(listify_manuscript_list(split_line))
         previous_line = line
     return listified_document
@@ -104,32 +109,12 @@ def write_listified_document(raw_list, collection, chap, verse):
                 lemma_dict['text']= current_bodmer
                 lemma_dict['manuscripts']=line[1]
                 lemma_list.append(lemma_dict)
-            elif line[0] == '[]' :
-                print('[]:', line[1])
-                lemma_dict['base_text_position'] = str(lemma_position)
-                lemma_dict['text']='[]'
-                lemma_dict['manuscripts']=line[1]
-                lemma_list.append(lemma_dict)
-            elif line[0] == '-' :
-                print('-:', line[1])
-                lemma_dict['base_text_position'] = str(lemma_position)
-                lemma_dict['text']='-'
-                lemma_dict['manuscripts']=line[1]
-                lemma_list.append(lemma_dict)
-                #print('bodmer manuscript line ' )
-            elif line[0].startswith('+'):
-                print('add ' + current_bodmer + ' ' + line[0][2:], line[1])
-                lemma_dict['isBR_ext'] = True
-                lemma_dict['base_text_position'] = str(lemma_position)
-                lemma_dict['text']= current_bodmer + ' ' + line[0][2:]
-                lemma_dict['manuscripts']=line[1]
-                lemma_list.append(lemma_dict)
+
             else:
                 gc = False
                 for c in line[0][:5]:
                     if (ord(c) < 970 and ord(c) > 944):
                         gc = True
-
                 if gc:
                     print(line[0], line[1])
                     lemma_dict['base_text_position'] = str(lemma_position)
@@ -172,11 +157,34 @@ for verse in range(1,15):
     intermediate_list = listify_apparatus_verse_document(raw_list )
     write_listified_document( intermediate_list, collection,chap,verse)
 
-db.lemmas.ensureIndex({'manuscripts': 1})
+
 
 '''
 output = cStringIO.StringIO()sudop
 output.write('First line.\n')
 print >>output, 'Second line.'
 previous_bold_state=False
+
+
+
+            elif line[0] == '[]' :
+                print('[]:', line[1])
+                lemma_dict['base_text_position'] = str(lemma_position)
+                lemma_dict['text']='[]'
+                lemma_dict['manuscripts']=line[1]
+                lemma_list.append(lemma_dict)
+            elif line[0] == '-' :
+                print('-:', line[1])
+                lemma_dict['base_text_position'] = str(lemma_position)
+                lemma_dict['text']='-'
+                lemma_dict['manuscripts']=line[1]
+                lemma_list.append(lemma_dict)
+                #print('bodmer manuscript line ' )
+            elif line[0].startswith('+'):
+                print('add ' + current_bodmer + ' ' + line[0][2:], line[1])
+                lemma_dict['isBR_ext'] = True
+                lemma_dict['base_text_position'] = str(lemma_position)
+                lemma_dict['text']= '+ ' + line[0][2:]
+                lemma_dict['manuscripts']=line[1]
+                lemma_list.append(lemma_dict)
 '''
