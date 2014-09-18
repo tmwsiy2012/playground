@@ -1,7 +1,7 @@
 import socket
 import urllib
 import zipfile
-import sys, struct, socket, tempfile, os
+import sys, struct, socket, tempfile, os, csv
 from subprocess import call
 
 
@@ -13,7 +13,7 @@ listen_port=4239
 base_dir = '/home/tmwsiy/'
 data_dir = base_dir+'mac_lists/'
 broadcast = {'BR':['152.20.223.255'], 'CI':['152.20.234.255']}
-machines_to_wake = {}
+room_list = {}
 wol_port = 9
 
 def wakeup_room(mac_list, building_code):
@@ -54,7 +54,7 @@ def importMacs( room_number):
     return [line.strip() for line in open(data_dir + room_number +".txt")]
 
 def update_data():
-    global machines_to_wake
+    global room_list
     machines_to_wake = {}
     tmp_zip = tempfile.mkdtemp()
     name, hdrs = urllib.urlretrieve(data_url, tmp_zip + '\mac_lists.zip')
@@ -62,11 +62,14 @@ def update_data():
     zip.extractall(path=tmp_zip)
     for f in os.listdir(os.path.join(tmp_zip,'mac_lists')):
         print 'new file', f
-        csv_file = open(os.path.join(tmp_zip,'mac_lists',f), "r")
-        for line in csv_file.readlines():
-            split_line = line.split(',')
-            if len(split_line) > 6 and not "Workstation" in split_line[0]:
-                print split_line[0], split_line[7]
+        with open(os.path.join(tmp_zip,'mac_lists',f), "r") as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',', quotechar='"')
+            for row in csv_reader:
+                if len(row) > 6 and not "Workstation" in row[0]:
+                    print row[0][:6], row[6]
+
+        #csv_file = open(os.path.join(tmp_zip,'mac_lists',f), "r")
+
 
 
 sock = socket.socket(socket.AF_INET, # Internet
