@@ -6,12 +6,13 @@ import socket
 
 #do_patch()
 
-UDP_IP = "127.0.0.1"
+#UDP_IP = "127.0.0.1"
+UDP_IP = "webdev.cislabs.uncw.edu"
 
 UDP_PORT = 4239
 listen_port=4240
 
-MESSAGE='WAKEUP:CI1003'
+MESSAGE='WAKEUP:CI2055'
 #MESSAGE='UPDATE'
 
 reply_socket = socket.socket(socket.AF_INET, # Internet
