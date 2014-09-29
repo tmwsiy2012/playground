@@ -11,8 +11,30 @@ def send_command(command):
     sock.sendto(command, (UDP_IP, UDP_PORT))
     time.sleep(.025)
 
+def give(player, item, amount=1 ):
+    send_command(' '.join(['/give', player, item, str(amount)]))
+
+def game_mode(mode, player):
+    send_command(' '.join(['/gamemode', str(mode), player]))
+
+def say(message):
+    send_command(' '.join(['/say', message]))
+
 def set_block(x, y, z, block):
     send_command(' '.join(['/setblock', str(x) ,str(y)  , str(z) , block,'\r\n']))
+
+def set_spawn_point_player(player, x, y , z):
+    send_command(' '.join(['/spawnpoint', player, str(x) ,str(y)  , str(z),'\r\n' ]))
+
+# clear|rain|thunder
+def set_weather(condition, duration=500):
+    send_command(' '.join(['/weather', str(duration)]))
+
+def whois(player):
+    send_command(' '.join(['/testfor', player]))
+
+def set_time(value):
+    send_command(' '.join(['/time', 'set', value]))
 
 def draw_cube(origin, size, block):
     for i in range(size):
@@ -48,7 +70,7 @@ def draw_pyramid( origin, size, block, step_size=2):
     origin[0]+=1
     draw_pyramid(origin,size-step_size, block, step_size)
 
-def draw_box(origin, length, height, width,  block):
+def draw_box(origin, length, height, width,  block, airfill=False):
     #draw left wall
     draw_vertical_plane(origin, height + 1, length, block)
     # draw bottom
@@ -71,8 +93,8 @@ def draw_box(origin, length, height, width,  block):
     draw_vertical_plane_90deg(origin, height +1, length, block)
     origin[0] -= length
 
-origin=[-99, 115, -464,]
+origin=[-216, 25, -435]
 
-draw_flat_plane(origin, 50, 50,  'air')
+draw_box(origin, 5, 100, 5,  'air')
 
 #draw_box(origin, 10, 10, 10, 'cobblestone')
