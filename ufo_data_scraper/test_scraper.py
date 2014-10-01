@@ -3,7 +3,7 @@ __author__ = 'tmwsiy'
 import requests, time
 import bs4
 
-
+# http://www.nltk.org/
 
 response = requests.get('http://www.nuforc.org/webreports/ndxevent.html')
 time.sleep(1)
@@ -16,9 +16,10 @@ for chunk in response.text.split(">"):
         for link in soup.find_all('a'):
             if not link.get('href').startswith("http"):
                 detail_page = requests.get('http://www.nuforc.org/webreports/' + link.get('href'))
-                detail_soup = bs4.BeautifulSoup(detail_page.text, "html5lib")
-
-                print detail_soup.get_text()
+                detail_soup = bs4.BeautifulSoup(detail_page.text)
+                for tag in soup.find_all('td'):
+                    print(tag.get_text())
+                #print detail_soup.get_text()
         time.sleep(1)
 
 #print response.text
