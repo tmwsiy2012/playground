@@ -29,8 +29,16 @@ for chunk in response.text.split(">"):
         for link in soup.find_all('a'):
             if not link.get('href').startswith("http"):
                 current_doc={}
-                time.sleep(1)
-                detail_page = requests.get('http://www.nuforc.org/webreports/' + link.get('href'))
+                #time.sleep(1)
+                success = False
+                detail_page = ''
+                while not success:
+                    try:
+                        detail_page = requests.get('http://www.nuforc.org/webreports/' + link.get('href'), timeout=10)
+                        success = True
+                    except:
+                        print 'Problem retrieving ', 'http://www.nuforc.org/webreports/' + link.get('href')
+
                 detail_soup = bs4.BeautifulSoup(detail_page.text)
                 #for tag in soup.find_all('td'):
                 #    print(tag.get_text())
