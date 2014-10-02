@@ -16,33 +16,41 @@ except pymongo.errors.ConnectionFailure as e:
 
 db = conn.corpus
 collection = db.sightings
-
+url_prefix='https://web.archive.org/web/20140824090651/'
 current_doc={}
-response = requests.get('http://www.nuforc.org/webreports/ndxevent.html')
-time.sleep(1)
-for chunk in response.text.split(">"):
-    if chunk.endswith(".html") and not "HREF" in chunk[-15:]:
-        monthly_page = requests.get('http://www.nuforc.org/webreports/' + chunk[-15:])
+#response = requests.get(url_prefix+'http://www.nuforc.org/webreports/ndxevent.html')
+#time.sleep(1)
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'
+}
+with open('months.txt', 'r') as f:
+    months = [line.strip() for line in f]
+for month in months:
+    if month.endswith(".html") and not "HREF" in month:
+        print url_prefix+'http://www.nuforc.org/webreports/' + month
+        monthly_page = requests.get(url_prefix+'http://www.nuforc.org/webreports/' + month, headers=headers)
         #print monthly_page.text
         soup = bs4.BeautifulSoup(monthly_page.text.replace("HREF","href").replace("<A","<a"), "html5lib")
         #print soup.get_text()
         for link in soup.find_all('a'):
             if not link.get('href').startswith("http"):
+                url = link.get('href')
                 current_doc={}
-                #time.sleep(1)
+                time.sleep(7)
                 success = False
                 detail_page = ''
                 while not success:
                     try:
-                        detail_page = requests.get('http://www.nuforc.org/webreports/' + link.get('href'), timeout=10)
+                        detail_page = requests.get(url_prefix+'http://www.nuforc.org/webreports/' + url, timeout=10, headers=headers)
                         success = True
                     except:
-                        print 'Problem retrieving ', 'http://www.nuforc.org/webreports/' + link.get('href')
+                        print 'Problem retrieving ', 'http://www.nuforc.org/webreports/' + url
 
                 detail_soup = bs4.BeautifulSoup(detail_page.text)
                 #for tag in soup.find_all('td'):
                 #    print(tag.get_text())
                 text = detail_soup.get_text()
+                print text
                 # set counter to find text blurb set to high number so it will not trigger until the first "Occured" line is found
                 counter=100
                 for line in text.split('\n'):
