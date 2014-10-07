@@ -1,6 +1,6 @@
 __author__ = 'tmwsiy'
 
-import pymongo
+import pymongo, re
 import pprint
 from collections import OrderedDict
 
@@ -16,3 +16,14 @@ db = conn.corpus
 collection = db.sightings
 
 print(db)
+
+
+#db.sightings.remove({"occurred" : {'$regex' : "^2\/[0-9]{1,2}\/2014.*"}})
+
+results = db.sightings.find({"occurred" : {'$regex' : "^2\/[0-9]{1,2}\/2014.*"}})
+
+for result in results:
+    print result['description']
+    re.findall(r'[a-z]{1}[A-Z]{1}', result['description'])
+
+
