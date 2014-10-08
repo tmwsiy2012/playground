@@ -33,15 +33,24 @@ for post in remote_collection.find():
             prev_end= index[1]-1
             count += 1
         new_description = new_description + post['description'][prev_end:]
+        m = re.search('\(\((NUFORC Note:.*\))\)',new_description)
+        if m:
+            print m.group(0)
         #print 'count:', str(count),'\n', new_description
-        new_document['description']=new_description
-        new_document['occurred']= parse(post['occurred'].split('(')[0].strip())
-        new_document['reported']= parse(post['reported'].split('M')[0] + 'M')
-        new_document['posted']= parse(post['posted'].strip())
-        new_document['location']= post['location'].strip()
-        new_document['shape']= post['shape'].strip()
-        new_document['duration']= post['duration']
-        local_collection.insert(new_document)
+        try:
+            new_document['description']=new_description
+            new_document['occurred']= parse(post['occurred'].split('(')[0].strip())
+            new_document['reported']= parse(post['reported'].split('M')[0] + 'M')
+            new_document['posted']= parse(post['posted'].strip())
+            new_document['location']= post['location'].strip()
+            new_document['shape']= post['shape'].strip()
+            new_document['duration']= post['duration']
+            local_collection.insert(new_document)
+        except Exception,e:
+            print str(e)
+            print 'post[\'reported\']', post['reported']
+            print 'post[\'occurred\']',post['occurred']
+            print 'post[\'posted\']',post['posted']
 
 
 #re.finditer(pattern, string[, flags])

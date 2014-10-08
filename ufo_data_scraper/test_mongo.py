@@ -15,4 +15,6 @@ except pymongo.errors.ConnectionFailure as e:
 db = conn.corpus
 collection = db.sightings
 
+for doc in db.collectionname.find({'description':{'$regex':'\(\(.*)\)\)'}}):
+    print doc
 print(db)
