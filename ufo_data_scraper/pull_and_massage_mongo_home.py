@@ -124,28 +124,35 @@ def set_description(new_document):
             # 'did NOT find match'
             new_document['description']=new_description
 
-stop_words = ['UK','FACING', 'COUNTIES', 'COUNTY', 'LOOKING' ]
+stop_words = set(['facing', 'counties', 'county', 'looking', 'at', 'sea', 'up', 'area', 'above', 'near', 'of', 'outside' ])
 
 def set_location(new_document, geolocator):
         try:
             #new_document['sanitized_location'] = re.sub(r'\([.*)]*\)', '', post['location'].strip())
             sanitized_location = post['location'].strip()
-            ' '.join([word for word in sanitized_location.split() if word.upper() not in stop_words])
+
+            # first remove stop words
+            #" ".join(filter(lambda word: word not in stop_words, sanitized_location.split()))
+            sanitized_location = ' '.join([word for word in sanitized_location.split() if word.lower() not in stop_words])
 
 
-            # this gets rid of anything in parenthesis
+            # remove stuff in parenthesis but save to try later if we have problems
+            paren_stuff = ''
             m = re.search('\((.*)\)',sanitized_location)
             if m:
+                paren_stuff = sanitized_location[m.start(0)+1:m.end(0)-1]
+                test_paren= paren_stuff.split('/')
+                if len(test_paren) > 1:
+                    paren_stuff = test_paren[1]
+                #print 'parenstuff:', paren_stuff
                 sanitized_location = sanitized_location[:m.start(0)] + sanitized_location[m.end(0)+1:]
                 #print 'NEWFIX', sanitized_location
 
             test_slash = sanitized_location.split('/')
-            if len(test_slash) > 1 and  'England' not in sanitized_location:
+            if len(test_slash) > 1 :
                 #print 'fixed slash, new location', test_slash[1], 'previous:', sanitized_location
                 sanitized_location = test_slash[1]
 
-            if len(test_slash) > 1 and  'England' in sanitized_location:
-                sanitized_location = sanitized_location.replace(sanitized_location,'/','')
 
             new_document['sanitized_location'] = sanitized_location
             location = geolocator.geocode(sanitized_location, timeout=15)
@@ -155,44 +162,44 @@ def set_location(new_document, geolocator):
                 # sanity check for correct US state
                 if len(location_parts) == 2:
                     state = location_parts[-1].upper().strip()
-                    if postal_abbreviation_lookup[state] not in location.address:
-                        #print state, 'not correct state for ', location.address
-                        #
-                        new_location = ''
-                        for i in location_parts[:-1]:
-                            new_location = new_location + i
-                        new_location = new_location + ' '+ postal_abbreviation_lookup[state]
-                        #print new_location
-                        location = geolocator.geocode(new_location, timeout=15)
+                    if state in postal_abbreviation_lookup:
                         if postal_abbreviation_lookup[state] not in location.address:
-                            #print 'town not found, just do state', states[state]
-                            location = geolocator.geocode(postal_abbreviation_lookup[state], timeout=15)
-                            if not location:
-                                raise Exception('failed on just state/country')
-                        else:
-                            pass
-                            #print 'corrected:', state, 'is correct state for', location.address
+                            #print state, 'not correct state for ', location.address
+                            #
+                            new_location = ''
+                            for i in location_parts[:-1]:
+                                new_location = new_location + i
+                            new_location = new_location + ' '+ postal_abbreviation_lookup[state]
+                            #print new_location
+                            location = geolocator.geocode(new_location, timeout=15)
+                            if location and postal_abbreviation_lookup[state] not in location.address:
+                                #print 'town not found, just do state', states[state]
+                                location = geolocator.geocode(postal_abbreviation_lookup[state], timeout=15)
+                                if not location:
+                                    raise Exception('failed on just state/country')
                 if len(location_parts) > 2:
-                    print sanitized_location, ':', location.address
+                    print 'found more than two parts from initial split().. sanitaized_location', sanitized_location, ':', location.address
 
 
             else:
-                #first attempt at geocode replace any state/province abbreviations with full text
+                #first attempt failed
+                ## try and add back the paren stuff to the end
 
-                # first attempt at geocode failed, try google
-                #print 'failed with:', sanitized_location
-                suggestions= try_search_suggestion(post['location'].strip())
-                location = geolocator.geocode(suggestions[0], timeout=15)
+                location = geolocator.geocode(sanitized_location + ' ' + paren_stuff, timeout=15)
                 if not location:
-                    # try to just use state
-                    location_parts = sanitized_location.split(',')
-                    state = location_parts[-1].upper().strip()
-                    location = geolocator.geocode(postal_abbreviation_lookup[state], timeout=15)
+                    #ok now replace any state/province abbreviations with full text
+                    for word in sanitized_location.split():
+                        for postal_abbr in postal_abbreviation_lookup:
+                            sanitized_location.replace(postal_abbr, postal_abbreviation_lookup[postal_abbr])
+                    # try again
+                    location = geolocator.geocode(sanitized_location + ' ' + paren_stuff, timeout=15)
                     if not location:
-                        raise Exception('location not found after google and just state '+  sanitized_location)
-                else:
-                    pass
-                    #print 'suggestions (took first):', suggestions
+                        # next try google
+                        suggestions= try_search_suggestion(sanitized_location+ ' ' + paren_stuff)
+                        if suggestions:
+                            location = geolocator.geocode(suggestions[0], timeout=15)
+
+
 
             new_document['lat'] = location.latitude
             new_document['lon'] = location.longitude
@@ -202,6 +209,8 @@ def set_location(new_document, geolocator):
         except Exception,e:
             print 'problem parsing address:', post['location'].strip()
             print 'after sanitation:', sanitized_location
+            if len(paren_stuff) > 1:
+                print 'paren_stuff', paren_stuff
             print str(e.message)
             traceback.print_exc()
 
