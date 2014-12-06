@@ -1,9 +1,5 @@
 __author__ = 'tmwsiy'
 
-import pymongo
-from bson import json_util
-import json
-from collections import OrderedDict
 import re, collections
 
 def words(text): return re.findall('[a-z]+', text.lower())
@@ -34,21 +30,3 @@ def known(words): return set(w for w in words if w in NWORDS)
 def correct(word):
     candidates = known([word]) or known(edits1(word)) or known_edits2(word) or [word]
     return max(candidates, key=NWORDS.get)
-
-# Connection to Mongo DB
-conn = None
-try:
-    conn=pymongo.MongoClient()
-    print ("Connected successfully!!!")
-except pymongo.errors.ConnectionFailure as e:
-   print("Could not connect to MongoDB: " + e)
-
-db = conn.corpus
-collection = db.sightings
-
-for doc in collection.find():
-
-
-
-#print(db)
-

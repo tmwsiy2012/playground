@@ -95,6 +95,19 @@ def draw_box(origin, length, height, width,  block, airfill=False):
 
 origin=[-216, 25, -435]
 
-draw_box(origin, 5, 100, 5,  'air')
+#draw_box(origin, 5, 100, 5,  'air')
 
 #draw_box(origin, 10, 10, 10, 'cobblestone')
+
+'''
+give('TD_Awesomeness','milk',3)
+time.sleep(1)
+give('TD_Awesomeness','egg',1)
+time.sleep(1)
+give('TD_Awesomeness','sugar',2)
+time.sleep(1)
+give('TD_Awesomeness','wheat',3)
+'''
+
+game_mode(1,'tmwsiy_avinu')
+game_mode(1,'TD_Awesomeness')
