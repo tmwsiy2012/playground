@@ -4,5 +4,5 @@ from geopy.geocoders import Nominatim
 
 
 geolocator = Nominatim()
-location = geolocator.geocode("Mississauga Canada ON")
+location = geolocator.geocode("Heswall  YT England", timeout=15)
 print(location.address)

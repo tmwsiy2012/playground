@@ -1,6 +1,6 @@
 __author__ = 'tmwsiy'
 
-import pymongo, re, time
+import pymongo, re, time, traceback
 from dateutil.parser import parse
 from geopy.geocoders import Nominatim
 import requests, json
@@ -8,14 +8,14 @@ from urllib import quote
 import pprint
 from collections import OrderedDict
 
-states={
+postal_abbreviation_lookup={
     "AB": "Alberta",
     "BC": "British Columbia",
     "MB": "Manitoba",
     "NB": "New Brunswick",
-    "NL": "Newfoundland and Labrador",
+    "NL": "Newfoundland",
     "NS": "Nova Scotia",
-    "NT": "Northwest Territories",
+    "NT": "Nortwest Territories",
     "NU": "Nunavut",
     "ON": "Ontario",
     "PE": "Prince Edward Island",
@@ -87,7 +87,7 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'
 }
 
-stop_words = ['(',')']
+
 
 def try_search_suggestion(location_string):
     tld= 'com'
@@ -124,22 +124,36 @@ def set_description(new_document):
             # 'did NOT find match'
             new_document['description']=new_description
 
+stop_words = set(['facing', 'counties', 'county', 'looking', 'at', 'sea', 'up', 'area', 'above', 'near', 'of', 'outside' ])
+
 def set_location(new_document, geolocator):
         try:
             #new_document['sanitized_location'] = re.sub(r'\([.*)]*\)', '', post['location'].strip())
             sanitized_location = post['location'].strip()
-            #' '.join([word for word in post['location'].strip().split() if word not in stop_words])
+
+            # first remove stop words
+            #" ".join(filter(lambda word: word not in stop_words, sanitized_location.split()))
+            sanitized_location = ' '.join([word for word in sanitized_location.split() if word.lower() not in stop_words])
 
 
-            # this gets rid of anything in parenthesis
+            # remove stuff in parenthesis but save to try later if we have problems
+            paren_stuff = ''
             m = re.search('\((.*)\)',sanitized_location)
             if m:
+                paren_stuff = sanitized_location[m.start(0)+1:m.end(0)-1]
+                test_paren= paren_stuff.split('/')
+                if len(test_paren) > 1:
+                    paren_stuff = test_paren[1]
+                #print 'parenstuff:', paren_stuff
                 sanitized_location = sanitized_location[:m.start(0)] + sanitized_location[m.end(0)+1:]
                 #print 'NEWFIX', sanitized_location
+
             test_slash = sanitized_location.split('/')
-            if len(test_slash) > 1:
-                print 'fixed slash, new location', test_slash[1], 'previous:', sanitized_location
+            if len(test_slash) > 1 :
+                #print 'fixed slash, new location', test_slash[1], 'previous:', sanitized_location
                 sanitized_location = test_slash[1]
+
+
             new_document['sanitized_location'] = sanitized_location
             location = geolocator.geocode(sanitized_location, timeout=15)
             if location:
@@ -148,37 +162,44 @@ def set_location(new_document, geolocator):
                 # sanity check for correct US state
                 if len(location_parts) == 2:
                     state = location_parts[-1].upper().strip()
-                    if states[state] not in location.address:
-                        #print state, 'not correct state for ', location.address
-                        new_location = ''
-                        for i in location_parts[:-1]:
-                            new_location = new_location + i
-                        new_location = new_location + ' '+ states[state]
-                        #print new_location
-                        location = geolocator.geocode(new_location, timeout=15)
-                        if states[state] not in location.address:
-                            #print 'town not found, just do state', states[state]
-                            location = geolocator.geocode(states[state], timeout=15)
-                        else:
-                            pass
-                            #print 'corrected:', state, 'is correct state for', location.address
+                    if state in postal_abbreviation_lookup:
+                        if postal_abbreviation_lookup[state] not in location.address:
+                            #print state, 'not correct state for ', location.address
+                            #
+                            new_location = ''
+                            for i in location_parts[:-1]:
+                                new_location = new_location + i
+                            new_location = new_location + ' '+ postal_abbreviation_lookup[state]
+                            #print new_location
+                            location = geolocator.geocode(new_location, timeout=15)
+                            if location and postal_abbreviation_lookup[state] not in location.address:
+                                #print 'town not found, just do state', states[state]
+                                location = geolocator.geocode(postal_abbreviation_lookup[state], timeout=15)
+                                if not location:
+                                    raise Exception('failed on just state/country')
+                if len(location_parts) > 2:
+                    print 'found more than two parts from initial split().. sanitaized_location', sanitized_location, ':', location.address
 
 
             else:
+                #first attempt failed
+                ## try and add back the paren stuff to the end
 
-                #print 'failed with:', sanitized_location
-                suggestions= try_search_suggestion(post['location'].strip())
-                location = geolocator.geocode(suggestions[0], timeout=15)
+                location = geolocator.geocode(sanitized_location + ' ' + paren_stuff, timeout=15)
                 if not location:
-                    # try to just use state
-                    location_parts = sanitized_location.split(',')
-                    state = location_parts[-1].upper().strip()
-                    location = geolocator.geocode(states[state], timeout=15)
+                    #ok now replace any state/province abbreviations with full text
+                    for word in sanitized_location.split():
+                        for postal_abbr in postal_abbreviation_lookup:
+                            sanitized_location.replace(postal_abbr, postal_abbreviation_lookup[postal_abbr])
+                    # try again
+                    location = geolocator.geocode(sanitized_location + ' ' + paren_stuff, timeout=15)
                     if not location:
-                        print 'location not found after google and just state',  sanitized_location
-                else:
-                    pass
-                    #print 'suggestions (took first):', suggestions
+                        # next try google
+                        suggestions= try_search_suggestion(sanitized_location+ ' ' + paren_stuff)
+                        if suggestions:
+                            location = geolocator.geocode(suggestions[0], timeout=15)
+
+
 
             new_document['lat'] = location.latitude
             new_document['lon'] = location.longitude
@@ -186,30 +207,33 @@ def set_location(new_document, geolocator):
             new_document['raw_location']= post['location'].strip()
 
         except Exception,e:
-            print 'problem parsing address'
-            print post['location'].strip()
-            print sanitized_location
+            print 'problem parsing address:', post['location'].strip()
+            print 'after sanitation:', sanitized_location
+            if len(paren_stuff) > 1:
+                print 'paren_stuff', paren_stuff
             print str(e.message)
+            traceback.print_exc()
 
 # Connection to Mongo DB
-remote_conn = None
-local_conn = None
+source_data = None
+destination_data = None
 try:
-    remote_conn= pymongo.MongoClient(host='152.20.244.74')
-    local_conn= pymongo.MongoClient()
+    source_data= pymongo.MongoClient()
+    destination_data= pymongo.MongoClient()
     print "Connected successfully!!!"
 except pymongo.errors.ConnectionFailure as e:
    print "Could not connect to MongoDB: " + str(e)
 
 geolocator = Nominatim()
-remote_db = remote_conn.corpus
-remote_collection = remote_db.sightings
-local_db = local_conn.corpus
-local_collection = local_db.sightings_geo
-local_collection.remove()
-for post in remote_collection.find():
+source_db = source_data.corpus
+source_collection = source_db.sightings
+dest_db = destination_data.corpus
+dest_collection = dest_db.sightings_geo
+source_collection
+dest_collection.remove()
+for post in source_collection.find().batch_size(10):
     if 'description' in post:
-        time.sleep(0.1)
+        #time.sleep(0.025)
         #print '\n\n'
         new_document= {}
         set_description(new_document)
@@ -220,7 +244,7 @@ for post in remote_collection.find():
             new_document['posted']= parse(post['posted'].strip())
             new_document['shape']= post['shape'].strip()
             new_document['duration']= post['duration']
-            local_collection.insert(new_document)
+            dest_collection.insert(new_document)
         except Exception,e:
             print str(e)
             print 'post[\'reported\']', post['reported']
