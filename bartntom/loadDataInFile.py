@@ -1,7 +1,7 @@
 import mysql.connector
 import os
 
-connection = mysql.connector.connect(host='localhost', user='root', passwd='tr45sh32', db='bls_qcew')
+connection = mysql.connector.connect(host='localhost', user='root', passwd='password', db='bls_qcew')
 cursor = connection.cursor()
 for dirname, dirnames, filenames in os.walk('C:\\Users\\tmwsiy\\Downloads\\data\\'):
     for filename in filenames:

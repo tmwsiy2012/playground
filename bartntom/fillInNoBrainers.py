@@ -7,7 +7,7 @@ CONST_YEAR = '2012'
 CONST_EXCEL_FILE='test.xlsx'
 
 def isNoBrainerAnnual(suppressed_codes,area,year,industry_code):
-    connection = mysql.connector.connect(host='localhost', user='root', passwd='tr45sh32', db='bls_qcew')
+    connection = mysql.connector.connect(host='localhost', user='root', passwd='password', db='bls_qcew')
     cursor = connection.cursor()    
     cursor.callproc("get_annual_sibling_entries",[area,industry_code,year,False])
     #results = cursor.fetchall

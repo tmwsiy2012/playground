@@ -36,7 +36,7 @@ def writeQuarterlyAreaDataExcelFile( area, year, quarter):
 	worksheet.write(0,12,"Average Weekly Wage",bold)
 
 
-	connection = mysql.connector.connect(host='localhost', user='root', passwd='tr45sh32', db='bls_qcew')
+	connection = mysql.connector.connect(host='localhost', user='root', passwd='password', db='bls_qcew')
 	cursor = connection.cursor()
 	cursor.callproc("get_quarterly_entries_by_area_code",[area,year,quarter])
 	#results = cursor.fetchall
