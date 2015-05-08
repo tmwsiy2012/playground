@@ -204,7 +204,7 @@ def update_knowledge_level(level_values):
     cnt = 0
     for lvl_val in level_values:
         data_to_insert =("{:.2f}".format((((float(lvl_val['data_value']))/7.0)*100)),lvl_val['knowltmpid'])
-        print data_to_insert
+        print (data_to_insert)
         cursor.execute(update_sql, data_to_insert)
         cnt += 1
         if cnt % buf_size == 0:
