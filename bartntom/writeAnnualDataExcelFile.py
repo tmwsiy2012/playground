@@ -83,11 +83,9 @@ def writeAnnualAreaDataExcelFile( area, year):
     worksheet.write(0,9,"Annual Average Weekly Rate",bold)
     worksheet.write(0,10,"Average Annual Pay",bold)
 
-<<<<<<< HEAD
+
     connection = mysql.connector.connect(host='localhost', user='root', passwd='password', db='bls_qcew')
-=======
-    connection = mysql.connector.connect(host='localhost', user='root', passwd='tr45sh32', db='bls_qcew')
->>>>>>> 9ad63e5691899c8d1e8a922961c7b9375b9dffa0
+
     cursor = connection.cursor()
     cursor.callproc("get_annual_entries_by_area_code",[area,year])
     #results = cursor.fetchall

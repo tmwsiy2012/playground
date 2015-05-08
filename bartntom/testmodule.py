@@ -18,11 +18,9 @@ def isNoBrainerAnnual(suppressed_codes,area,year,industry_code):
     return True
   
 def isNoBrainerAnnualSum(suppressed_codes,area,year,industry_code):
-<<<<<<< HEAD
+
     connection = mysql.connector.connect(host='localhost', user='root', passwd='password', db='bls_qcew')
-=======
-    connection = mysql.connector.connect(host='localhost', user='root', passwd='tr45sh32', db='bls_qcew')
->>>>>>> 9ad63e5691899c8d1e8a922961c7b9375b9dffa0
+
     cursor = connection.cursor()
     sibling_sum=0
     cursor.callproc("get_annual_sibling_entries",[area,industry_code,year,False])
