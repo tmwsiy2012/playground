@@ -121,18 +121,21 @@ CREATE TABLE `sector` (
   KEY `sector_code` (`sector_code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8$$
 
-delimiter $$
-
+  delimiter $$
+  
 CREATE TABLE `series` (
   `idseries` int(11) NOT NULL AUTO_INCREMENT,
   `series_id` varchar(30) NOT NULL,
   `seasonal` varchar(1) NOT NULL,
   `areatype_code` varchar(1) NOT NULL,
-  `area_code` varchar(7) NOT NULL,
   `industry_code` varchar(6) NOT NULL,
   `occupation_code` varchar(6) NOT NULL,
-  `datatype_code` varchar(6) NOT NULL,
-  `footnote_codes` varchar(2) NOT NULL,
+  `datatype_code` varchar(2) NOT NULL,
+  `state_code` varchar(2) NOT NULL,
+  `area_code` varchar(7) NOT NULL,
+  `sector_code` varchar(6) NOT NULL,
+  `series_title` text NOT NULL,
+  `footnote_codes` varchar(10) NOT NULL,
   `begin_year` varchar(4) NOT NULL,
   `begin_period` varchar(3) NOT NULL,
   `end_year` varchar(4) NOT NULL,
@@ -140,7 +143,8 @@ CREATE TABLE `series` (
   PRIMARY KEY (`idseries`),
   KEY `seriesid` (`series_id`),
   KEY `area_code` (`area_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=5846041 DEFAULT CHARSET=utf8$$
+) ENGINE=InnoDB AUTO_INCREMENT=6960136 DEFAULT CHARSET=utf8;
+
 
 delimiter $$
 
