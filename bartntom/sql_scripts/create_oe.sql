@@ -1,7 +1,5 @@
-CREATE DATABASE `bls_oe` /*!40100 DEFAULT CHARACTER SET utf8 */$$
-
 delimiter $$
-
+CREATE DATABASE `bls_oe` /*!40100 DEFAULT CHARACTER SET utf8 */$$
   use bls_oe;
 
 CREATE TABLE `alldata` (
@@ -122,7 +120,7 @@ CREATE TABLE `sector` (
 ) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8$$
 
   delimiter $$
-  
+
 CREATE TABLE `series` (
   `idseries` int(11) NOT NULL AUTO_INCREMENT,
   `series_id` varchar(30) NOT NULL,
